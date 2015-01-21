@@ -1,7 +1,6 @@
 '''
 Created on Jan 19, 2015
 
-@author: Gramener-pc
 '''
 import re
 import nltk

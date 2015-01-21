@@ -12,7 +12,7 @@ import numpy as np  # Make sure that numpy is imported
 from gensim.models import Word2Vec,Doc2Vec
 from sklearn.ensemble import RandomForestClassifier
 
-from s import KaggleWord2VecUtility
+from kaggleutility import KaggleWord2VecUtility
 from sklearn import metrics
 import gensim
 from sklearn.cross_validation import train_test_split
