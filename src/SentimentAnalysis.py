@@ -10,7 +10,7 @@ import nltk.data
 import logging
 import numpy as np  # Make sure that numpy is imported
 from gensim.models import Word2Vec,Doc2Vec
-from sklearn.ensemble import RandomForestClassifier
+#from sklearn.ensemble import RandomForestClassifier
 
 from kaggleutility import KaggleWord2VecUtility
 from sklearn import metrics
@@ -89,9 +89,13 @@ def getCleanReviews(reviews):
 def MyLabeledLineSentence(train_sen_len, model,  reviews):
     sens = []
     inner_id = 0
+    k = 0
+    print len(reviews)
+    
     try:
         for line in reviews:
-            
+            print k
+            k+=1
             item_no =  train_sen_len + inner_id
             label = 'SENT_'+str(item_no)
             newvocab = gensim.models.doc2vec.Vocab()
@@ -136,24 +140,26 @@ if __name__ == '__main__':
     sentences = []  # Initialize an empty list of sentences
 
 #     print "Parsing sentences from training set"
-#     i=0
-#     for review in train["review"]:
-#         sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
-#         i+=1
-#     
-# # 
-# #     print "Parsing sentences from unlabeled set"
-#     for review in unlabeled_train["review"]:
-#         sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
-#         i+=1
+    j=0
+    i=0
+    for review in train["review"]:
+        sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
+        i+=1
+     
 # 
-# #     print type(sentences)
+#     print "Parsing sentences from unlabeled set"
+    for review in unlabeled_train["review"]:
+        sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
+        i+=1
+    j=i
+ 
+#     print type(sentences)
 #     
 #     with open("E:\\try.txt", 'wb') as f:
 #         pickle.dump(sentences, f)
          
-    with open("E:\\try.txt", 'rb') as f:
-        sentences = pickle.load(f)
+#     with open("E:\\try.txt", 'rb') as f:
+#         sentences = pickle.load(f)
     
     # ****** Set parameters and train the word2vec model
     #
@@ -172,7 +178,9 @@ if __name__ == '__main__':
     #Initialize and train the model (this will take some time)
     print "Training Word2Vec model..."
 #     
-    model = Doc2Vec(alpha=0.025, min_alpha=0.025,num_features = 600,downsampling = 1e-8,context = 30)  # use fixed learning rate
+    model = Doc2Vec(workers=num_workers, \
+                size=num_features, min_count = min_word_count, \
+                window = context, sample = downsampling, seed=1)  # use fixed learning rate
 
     model.build_vocab(sentences)
     
@@ -185,9 +193,16 @@ if __name__ == '__main__':
     j=0;
     sent=[]
     i=0
-    for review in train["review"]:
+    for review in test["review"]:
         sent += KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0]
         i+=1
+        
+    reviewFeatureVecs = np.zeros((j,num_features),dtype="float32")
+    counter = 0 
+    for each in xrange(0,j):
+        reviewFeatureVecs[counter] = model.most_similar('sent_'+each)[1]
+        counter+=1
+    trainDataVecs = reviewFeatureVecs
  
     try:
     # ****** Create average vectors for the training and test sets
@@ -199,33 +214,24 @@ if __name__ == '__main__':
         model.train_labels=True
 
         model.train_words=False
-
+        print "Training test data....."
         model.train(sentences)
         
         reviewFeatureVecs = np.zeros((len(sentences),num_features),dtype="float32")
+        counter = 0
         for sen in sentences:
             label = sen.labels[0]
-            similar_array = model.most_similar(label)
-            print "Input test sentence:%s\n" % (' '.join(sen.words).encode('utf-8'))
-            counter=0
+            similar_array = model.most_similar(label,1)
             for sim in similar_array:
-                if counter%1000. == 0.:
-                    print "Review %d of %d" % (counter, len(sentences))
-       #
-       # Call the function (defined above) that makes average feature vectors
-                reviewFeatureVecs[counter] = makeFeatureVec(review, model, \
-           num_features)
-       #
-       # Increment the counter
-                counter = counter + 1.
-            print "\n"
+                reviewFeatureVecs[counter] = sim[1]
+                counter+=1
              
     except:
-        print "haiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        print ""
      
     testDataVecs = reviewFeatureVecs
      
-     
+        
 #     #
 #     print "Creating average feature vecs for training reviews"
 # 
