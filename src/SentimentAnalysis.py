@@ -135,26 +135,25 @@ if __name__ == '__main__':
     #
     sentences = []  # Initialize an empty list of sentences
 
-    print "Parsing sentences from training set"
-    i=0
-    #for review in train["review"]:
-    review =  "Anirudh is a good boy"
-    sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
-    #i+=1
-    
-# 
-#     print "Parsing sentences from unlabeled set"
+#     print "Parsing sentences from training set"
+#     i=0
+#     for review in train["review"]:
+#         sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
+#         i+=1
+#     
+# # 
+# #     print "Parsing sentences from unlabeled set"
 #     for review in unlabeled_train["review"]:
 #         sentences += [gensim.models.doc2vec.LabeledSentence(KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0],labels = ['sent_%s' %i])]
 #         i+=1
-
-#     print type(sentences)
-    
+# 
+# #     print type(sentences)
+#     
 #     with open("E:\\try.txt", 'wb') as f:
 #         pickle.dump(sentences, f)
-#         
-#     with open("E:\\try.txt", 'rb') as f:
-#         sentences = pickle.load(f)
+         
+    with open("E:\\try.txt", 'rb') as f:
+        sentences = pickle.load(f)
     
     # ****** Set parameters and train the word2vec model
     #
@@ -162,66 +161,71 @@ if __name__ == '__main__':
     # creates nice output messages
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',\
         level=logging.INFO)
-
+ 
     # Set values for various parameters
-#     num_features = 600    # Word vector dimensionality
-#     min_word_count = 40   # Minimum word count
-#     num_workers = 4       # Number of threads to run in parallel
-#     context = 30          # Context window size
-#     downsampling = 1e-8   # Downsample setting for frequent words
+    num_features = 600    # Word vector dimensionality
+    min_word_count = 40   # Minimum word count
+    num_workers = 4       # Number of threads to run in parallel
+    context = 30          # Context window size
+    downsampling = 1e-8   # Downsample setting for frequent words
 
-    # Initialize and train the model (this will take some time)
+    #Initialize and train the model (this will take some time)
     print "Training Word2Vec model..."
-    print "here"
-    
-    model = Doc2Vec(alpha=0.025, min_alpha=0.025)  # use fixed learning rate
-    print "here"
+#     
+    model = Doc2Vec(alpha=0.025, min_alpha=0.025,num_features = 600,downsampling = 1e-8,context = 30)  # use fixed learning rate
+
     model.build_vocab(sentences)
-    print "here"
+    
     model.train(sentences)
     # If you don't plan to train the model any further, calling
     # init_sims will make the model much more memory-efficient.
-    print "here"
     model.init_sims(replace=True)
-    print "here"
     # It can be helpful to create a meaningful model name and
     # save the model for later use. You can load it later using Word2Vec.load()
-    model_name = "300features_40minwords_10context"
-    print "here"
-    model.save(model_name)
-    print "here"
-
-
+    j=0;
+    sent=[]
+    i=0
+    for review in train["review"]:
+        sent += KaggleWord2VecUtility.review_to_sentences(review, tokenizer)[0]
+        i+=1
+ 
     try:
     # ****** Create average vectors for the training and test sets
-
+ 
         train_sen_len=len(model.vocab)
-        print "Printing mode: ", train_sen_len
-        sentences=MyLabeledLineSentence(train_sen_len, model,['anirudh','is']) #getCleanReviews("anirudh is here"))
+
+        sentences=MyLabeledLineSentence(train_sen_len, model,sent)
+        
         model.train_labels=True
-#         print "here"
+
         model.train_words=False
-        print 'Sentences : ', sentences
+
         model.train(sentences)
-    
+        
+        reviewFeatureVecs = np.zeros((len(sentences),num_features),dtype="float32")
         for sen in sentences:
             label = sen.labels[0]
             similar_array = model.most_similar(label)
             print "Input test sentence:%s\n" % (' '.join(sen.words).encode('utf-8'))
+            counter=0
             for sim in similar_array:
-                print ("\t\t%20s\t%.6f\n" % (sim[0].encode('utf-8'), sim[1]))
+                if counter%1000. == 0.:
+                    print "Review %d of %d" % (counter, len(sentences))
+       #
+       # Call the function (defined above) that makes average feature vectors
+                reviewFeatureVecs[counter] = makeFeatureVec(review, model, \
+           num_features)
+       #
+       # Increment the counter
+                counter = counter + 1.
             print "\n"
-            
-            print "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+             
     except:
         print "haiiiiiiiiiiiiiiiiiiiiiiiiiii"
-    
-    
-    
-# positive    234234    mdghfdb \n
-# cgfjkghjhfkmjnvbhmnkbn
-# positive    234234    mdghfdb    
-    
+     
+    testDataVecs = reviewFeatureVecs
+     
+     
 #     #
 #     print "Creating average feature vecs for training reviews"
 # 
@@ -237,12 +241,12 @@ if __name__ == '__main__':
 #     # Fit a random forest to the training data, using 100 trees
 # 
 #     
-#     model = LR()
-#     model.fit(trainDataVecs, train["sentiment"])
-#     pr_teX = model.predict_proba(testDataVecs)[:, 1]
-#     
-# 
-#     # Write the test results
-#     output = pd.DataFrame( data={"id":test["id"], "sentiment":pr_teX} )
-#     output.to_csv( "E:\\Word2Vec_AverageVectors.csv", index=False, quoting=3 )
-#     print "Wrote Word2Vec_AverageVectors.csv"
+    model = LR()
+    model.fit(trainDataVecs, train["sentiment"])
+    pr_teX = model.predict_proba(testDataVecs)[:, 1]
+      
+  
+    # Write the test results
+    output = pd.DataFrame( data={"id":test["id"], "sentiment":pr_teX} )
+    output.to_csv( "E:\\Word2Vec_AverageVectors.csv", index=False, quoting=3 )
+    print "Wrote Word2Vec_AverageVectors.csv"
