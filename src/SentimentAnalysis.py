@@ -3,27 +3,23 @@ code for sentiment analysis
 
 '''
 
+
 import pandas as pd
 import os
-from nltk.corpus import stopwords
 import nltk.data
 import logging
 import numpy as np  # Make sure that numpy is imported
-from gensim.models import Word2Vec,Doc2Vec
+from gensim.models import Doc2Vec
 #from sklearn.ensemble import RandomForestClassifier
 
 from kaggleutility import KaggleWord2VecUtility
-from sklearn import metrics
+
 import gensim
-from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import LogisticRegression as LR
-from sklearn.feature_extraction.text import TfidfVectorizer
-import pickle
 import numpy
 import math
 import sys
 from numpy import random,uint32
-import traceback
 
 # ****** Define functions to create average word vectors
 #
@@ -68,7 +64,7 @@ def getAvgFeatureVecs(reviews, model, num_features):
        #
        # Print a status message every 1000th review
        if counter%1000. == 0.:
-           print "Review %d of %d" % (counter, len(reviews))
+           print ("Review %d of %d" % (counter, len(reviews)))
        #
        # Call the function (defined above) that makes average feature vectors
        reviewFeatureVecs[counter] = makeFeatureVec(review, model, \
@@ -90,11 +86,11 @@ def MyLabeledLineSentence(train_sen_len, model,  reviews):
     sens = []
     inner_id = 0
     k = 0
-    print len(reviews)
+    print (len(reviews))
     
     try:
         for line in reviews:
-            print k
+            print (k)
             k+=1
             item_no =  train_sen_len + inner_id
             label = 'SENT_'+str(item_no)
@@ -124,9 +120,9 @@ if __name__ == '__main__':
     unlabeled_train = pd.read_csv( os.path.join(os.path.dirname(__file__), 'data', "E:\\unlabeledTrainData.tsv"), header=0,  delimiter="\t", quoting=3 )
 
     # Verify the number of reviews that were read (100,000 in total)
-    print "Read %d labeled train reviews, %d labeled test reviews, " \
+    print ("Read %d labeled train reviews, %d labeled test reviews, " \
      "and %d unlabeled reviews\n" % (train["review"].size,
-     test["review"].size, unlabeled_train["review"].size )
+     test["review"].size, unlabeled_train["review"].size ))
 
 
 
@@ -176,7 +172,7 @@ if __name__ == '__main__':
     downsampling = 1e-8   # Downsample setting for frequent words
 
     #Initialize and train the model (this will take some time)
-    print "Training Word2Vec model..."
+    print ("Training Word2Vec model...")
 #     
     model = Doc2Vec(workers=num_workers, \
                 size=num_features, min_count = min_word_count, \
@@ -214,7 +210,7 @@ if __name__ == '__main__':
         model.train_labels=True
 
         model.train_words=False
-        print "Training test data....."
+        print ("Training test data.....")
         model.train(sentences)
         
         reviewFeatureVecs = np.zeros((len(sentences),num_features),dtype="float32")
@@ -227,7 +223,7 @@ if __name__ == '__main__':
                 counter+=1
              
     except:
-        print ""
+        print ("")
      
     testDataVecs = reviewFeatureVecs
      
@@ -255,4 +251,4 @@ if __name__ == '__main__':
     # Write the test results
     output = pd.DataFrame( data={"id":test["id"], "sentiment":pr_teX} )
     output.to_csv( "E:\\Word2Vec_AverageVectors.csv", index=False, quoting=3 )
-    print "Wrote Word2Vec_AverageVectors.csv"
+    print ("Wrote Word2Vec_AverageVectors.csv")
